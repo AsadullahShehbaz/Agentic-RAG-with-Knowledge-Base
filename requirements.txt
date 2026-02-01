@@ -52,7 +52,7 @@ streamlit==1.40.2
 python-json-logger==3.2.1
 
 # Google APIs
-google-api-python-client==2.154.0
+google-api-python-client==2.161.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.1
 
