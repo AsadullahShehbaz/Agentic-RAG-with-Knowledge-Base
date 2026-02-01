@@ -18,7 +18,7 @@ langchain-google-community==2.0.10
 
 # LangGraph
 langgraph==0.2.59
-langgraph-checkpoint==2.0.11
+langgraph-checkpoint==2.0.26
 langgraph-checkpoint-postgres==2.0.8
 
 # AI/ML Models
