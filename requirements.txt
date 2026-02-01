@@ -120,8 +120,7 @@ iniconfig==2.3.0
 ipinfo==5.3.0
 ipykernel==6.29.5
 ipython==8.32.0
-ipython_pygments_lexers==0.1.0
-itsdangerous==2.2.0
+ipython_pygments_lexers==1.1.1
 jedi==0.19.2
 Jinja2==3.1.6
 jiter==0.10.0
