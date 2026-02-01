@@ -6,6 +6,7 @@ python-multipart==0.0.12
 # Database
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
+psycopg[binary]==3.3.2
 alembic==1.14.0
 
 # LangChain Stack
