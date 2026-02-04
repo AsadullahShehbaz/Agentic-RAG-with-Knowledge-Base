@@ -1,5 +1,5 @@
 """
-🤖 Agentic RAG with Knowledge Base 
+🤖 Agentic RAG with Knowledge Base
 Clean Streamlit Implementation (No HTML/CSS)
 
 Features:
@@ -9,7 +9,6 @@ Features:
 ✅ Document Upload & Management
 ✅ Real-time Streaming Chat
 ✅ Analytics Dashboard
-✅ Debug Logging
 """
 
 import streamlit as st
@@ -56,7 +55,6 @@ def init_session_state():
         "show_welcome": True,
         "stats_cache": None,
         "last_stats_update": None,
-        "debug_logs": [],
     }
     
     for key, value in defaults.items():
@@ -66,21 +64,8 @@ def init_session_state():
 init_session_state()
 
 # ========================================
-# LOGGING HELPER
-# ========================================
-def log_debug(message: str):
-    """Add debug log to session state and print to console"""
-    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-    log_entry = f"[{timestamp}] {message}"
-    logger.info(message)
-    st.session_state.debug_logs.append(log_entry)
-    if len(st.session_state.debug_logs) > 100:
-        st.session_state.debug_logs = st.session_state.debug_logs[-100:]
-
-# ========================================
 # API HELPER FUNCTIONS
 # ========================================
-
 def get_headers() -> Dict[str, str]:
     """Get authorization headers"""
     if st.session_state.token:
@@ -91,10 +76,10 @@ def api_call(method: str, endpoint: str, **kwargs) -> Tuple[bool, any]:
     """Generic API call function with error handling"""
     try:
         url = f"{API_BASE_URL}{endpoint}"
-        log_debug(f"API {method} {endpoint}")
+        logger.info(f"API {method} {endpoint}")
         
         response = requests.request(method, url, timeout=30, **kwargs)
-        log_debug(f"Response: {response.status_code}")
+        logger.info(f"Response: {response.status_code}")
         
         if response.status_code in [200, 201]:
             try:
@@ -106,23 +91,22 @@ def api_call(method: str, endpoint: str, **kwargs) -> Tuple[bool, any]:
                 error_msg = response.json().get("detail", f"Error {response.status_code}")
             except:
                 error_msg = f"Error {response.status_code}"
-            log_debug(f"API Error: {error_msg}")
+            logger.error(f"API Error: {error_msg}")
             return False, error_msg
             
     except requests.exceptions.Timeout:
-        log_debug("⏱️ Request timeout")
+        logger.error("Request timeout")
         return False, "Request timeout. Please try again."
     except requests.exceptions.ConnectionError:
-        log_debug("🔌 Connection error")
+        logger.error("Connection error")
         return False, "Connection error. Please check your internet connection."
     except Exception as e:
-        log_debug(f"💥 Exception: {str(e)}")
+        logger.exception(f"Exception: {str(e)}")
         return False, f"Unexpected error: {str(e)}"
 
 # ========================================
 # AUTHENTICATION FUNCTIONS
 # ========================================
-
 def register_user(username: str, email: str, password: str) -> Tuple[bool, str]:
     """Register a new user"""
     return api_call(
@@ -142,37 +126,36 @@ def login_user(username: str, password: str) -> Tuple[bool, str]:
     if success:
         st.session_state.token = data["access_token"]
         st.session_state.username = username
-        log_debug(f"✅ User logged in: {username}")
+        logger.info(f"User logged in: {username}")
         return True, "Login successful!"
-    
     return False, data
 
 def logout():
     """Clear session and logout"""
-    log_debug("🚪 User logged out")
+    logger.info("User logged out")
     keys_to_clear = ["token", "username", "current_thread_id", "messages", 
                      "threads", "documents", "stats_cache", "last_stats_update"]
+    
     for key in keys_to_clear:
         if key in ["token", "username", "current_thread_id", "stats_cache", "last_stats_update"]:
             st.session_state[key] = None
         else:
             st.session_state[key] = []
+    
     st.session_state.show_welcome = True
 
 # ========================================
 # THREAD MANAGEMENT FUNCTIONS
 # ========================================
-
 def get_threads(force_refresh: bool = False) -> List[Dict]:
     """Fetch all threads"""
-    # Use cached threads if available and not forcing refresh
     if not force_refresh and st.session_state.threads:
         return st.session_state.threads
     
     success, data = api_call("GET", "/api/chat/threads", headers=get_headers())
     if success:
         st.session_state.threads = data
-        log_debug(f"📚 Loaded {len(data)} threads")
+        logger.info(f"Loaded {len(data)} threads")
         return data
     return []
 
@@ -180,21 +163,22 @@ def create_thread() -> Optional[str]:
     """Create a new thread"""
     success, data = api_call("POST", "/api/chat/threads/new", headers=get_headers())
     if success:
-        log_debug(f"➕ Created thread: {data['thread_id']}")
+        logger.info(f"Created thread: {data['thread_id']}")
         return data["thread_id"]
     return None
 
 def get_thread_history(thread_id: str) -> List[Dict]:
     """Get thread history"""
-    log_debug(f"📖 Loading history for: {thread_id}")
+    logger.info(f"Loading history for: {thread_id}")
     success, data = api_call(
         "GET",
         f"/api/chat/threads/{thread_id}",
         headers=get_headers()
     )
+    
     if success:
         history = data.get("history", [])
-        log_debug(f"✅ Loaded {len(history)} messages")
+        logger.info(f"Loaded {len(history)} messages")
         return history
     return []
 
@@ -206,7 +190,7 @@ def delete_thread(thread_id: str) -> bool:
         headers=get_headers()
     )
     if success:
-        log_debug(f"🗑️ Deleted thread: {thread_id}")
+        logger.info(f"Deleted thread: {thread_id}")
     return success
 
 def update_thread_title(thread_id: str, new_title: str) -> bool:
@@ -215,23 +199,22 @@ def update_thread_title(thread_id: str, new_title: str) -> bool:
         "PATCH",
         f"/api/chat/threads/{thread_id}",
         headers=get_headers(),
-        params={"title": new_title}  # ← Fix: Send as query parameter to match backend
+        params={"title": new_title}
     )
+    
     if success:
-        log_debug(f"✏️ Updated title: {new_title}")
-        # Force refresh threads list
+        logger.info(f"Updated title: {new_title}")
         get_threads(force_refresh=True)
     return success
 
 # ========================================
 # CHAT FUNCTIONS (STREAMING)
 # ========================================
-
 def stream_message(message: str, thread_id: Optional[str] = None):
-    """Stream chat response with detailed logging"""
+    """Stream chat response"""
     try:
-        log_debug(f"🚀 Stream START - Msg: '{message[:40]}...'")
-        log_debug(f"🔖 Thread: {thread_id}")
+        logger.info(f"Stream START - Message: '{message[:40]}...'")
+        logger.info(f"Thread: {thread_id}")
         
         response = requests.post(
             f"{API_BASE_URL}/api/chat/stream",
@@ -241,11 +224,11 @@ def stream_message(message: str, thread_id: Optional[str] = None):
             timeout=120
         )
         
-        log_debug(f"📡 HTTP {response.status_code}")
+        logger.info(f"HTTP {response.status_code}")
         
         if response.status_code != 200:
             error_msg = f"Error: {response.status_code}"
-            log_debug(f"❌ {error_msg}")
+            logger.error(error_msg)
             yield {"type": "error", "message": error_msg}
             return
         
@@ -255,48 +238,41 @@ def stream_message(message: str, thread_id: Optional[str] = None):
                 continue
             
             data_str = line[6:]
-            
             if data_str == "[DONE]":
-                log_debug(f"✅ Stream DONE - {chunk_count} chunks")
+                logger.info(f"Stream DONE - {chunk_count} chunks")
                 break
             
             try:
                 chunk = json.loads(data_str)
                 chunk_count += 1
-                chunk_type = chunk.get("type")
                 
+                chunk_type = chunk.get("type")
                 if chunk_type == "content":
-                    content_len = len(chunk.get("data", ""))
-                    log_debug(f"💬 Content #{chunk_count} ({content_len} chars)")
-                elif chunk_type == "status":
-                    log_debug(f"📊 Status: {chunk.get('status')}")
+                    logger.debug(f"Content chunk #{chunk_count}")
                 elif chunk_type == "tool_start":
-                    log_debug(f"🔧 Tool: {chunk.get('tool')}")
-                elif chunk_type == "sources":
-                    log_debug(f"📚 Sources: {len(chunk.get('sources', []))}")
+                    logger.info(f"Tool start: {chunk.get('tool')}")
                 elif chunk_type == "error":
-                    log_debug(f"❌ Error: {chunk.get('message')}")
+                    logger.error(f"Error: {chunk.get('message')}")
                 
                 yield chunk
                 
             except json.JSONDecodeError as e:
-                log_debug(f"⚠️ JSON error: {str(e)}")
+                logger.warning(f"JSON decode error: {str(e)}")
                 continue
                 
     except requests.exceptions.Timeout:
-        log_debug("⏱️ Stream timeout")
+        logger.error("Stream timeout")
         yield {"type": "error", "message": "Request timeout. Please try again."}
     except Exception as e:
-        log_debug(f"💥 Stream error: {str(e)}")
+        logger.exception(f"Stream error: {str(e)}")
         yield {"type": "error", "message": str(e)}
 
 # ========================================
 # DOCUMENT FUNCTIONS
 # ========================================
-
 def upload_document(file) -> Tuple[bool, str]:
     """Upload a PDF document"""
-    log_debug(f"📤 Uploading: {file.name}")
+    logger.info(f"Uploading: {file.name}")
     files = {"file": (file.name, file.getvalue(), "application/pdf")}
     return api_call(
         "POST",
@@ -310,7 +286,7 @@ def get_documents() -> List[Dict]:
     success, data = api_call("GET", "/api/documents/", headers=get_headers())
     if success:
         st.session_state.documents = data
-        log_debug(f"📄 Loaded {len(data)} documents")
+        logger.info(f"Loaded {len(data)} documents")
         return data
     return []
 
@@ -322,7 +298,7 @@ def delete_document(doc_id: str) -> bool:
         headers=get_headers()
     )
     if success:
-        log_debug(f"🗑️ Deleted document: {doc_id}")
+        logger.info(f"Deleted document: {doc_id}")
     return success
 
 def get_upload_stats() -> Optional[Dict]:
@@ -330,7 +306,7 @@ def get_upload_stats() -> Optional[Dict]:
     current_time = time.time()
     
     if (st.session_state.last_stats_update and 
-        current_time - st.session_state.last_stats_update < 30 and
+        current_time - st.session_state.last_stats_update < 30 and 
         st.session_state.stats_cache):
         return st.session_state.stats_cache
     
@@ -349,10 +325,8 @@ def get_upload_stats() -> Optional[Dict]:
 # ========================================
 # UI COMPONENTS
 # ========================================
-
 def render_login_page():
     """Render login/register page"""
-    
     st.title("🤖 Agentic RAG Assistant")
     st.subheader("Experience AI-powered conversations with advanced RAG technology")
     
@@ -408,7 +382,6 @@ def render_login_page():
             
             with col1:
                 reg_username = st.text_input("Username", placeholder="Choose a username")
-            
             with col2:
                 reg_email = st.text_input("Email", placeholder="your.email@example.com")
             
@@ -441,10 +414,9 @@ def render_login_page():
 
 def render_sidebar():
     """Render sidebar with user profile and navigation"""
-    
     with st.sidebar:
         # User Profile
-        st.header(f"👤 {st.session_state.username}")
+        st.header(f"👤 {st.session_state.username.upper()}")
         st.caption("AI Power User")
         
         if st.button("🚪 Logout", use_container_width=True):
@@ -457,6 +429,7 @@ def render_sidebar():
         st.subheader("💬 Conversations")
         
         col1, col2 = st.columns([3, 1])
+        
         with col1:
             if st.button("➕ New Chat", use_container_width=True):
                 with st.spinner("Creating new conversation..."):
@@ -474,7 +447,7 @@ def render_sidebar():
                 st.rerun()
         
         # Thread List
-        threads = get_threads(force_refresh=False)  # Use cached data by default
+        threads = get_threads(force_refresh=False)
         
         if threads:
             st.caption(f"**{len(threads)} active conversations**")
@@ -490,7 +463,6 @@ def render_sidebar():
                 
                 with col1:
                     emoji = "📌" if is_current else "💬"
-                    
                     if st.button(f"{emoji} {title}", key=f"thread_{thread['id']}", use_container_width=True):
                         if not is_current:
                             st.session_state.current_thread_id = thread['id']
@@ -514,7 +486,6 @@ def render_sidebar():
         # Rename Current Thread
         if st.session_state.current_thread_id:
             with st.expander("✏️ Rename Current Chat"):
-                # Get current thread title
                 current_thread = next(
                     (t for t in st.session_state.threads if t['id'] == st.session_state.current_thread_id),
                     None
@@ -522,10 +493,11 @@ def render_sidebar():
                 current_title = current_thread['title'] if current_thread else ""
                 
                 new_title = st.text_input(
-                    "New title", 
-                    value=current_title,  # ← Show current title
+                    "New title",
+                    value=current_title,
                     placeholder="Enter a title"
                 )
+                
                 if st.button("💾 Save Title", use_container_width=True):
                     if new_title and new_title != current_title:
                         with st.spinner("Updating title..."):
@@ -560,7 +532,6 @@ def render_sidebar():
         
         # Document List
         st.caption("**Your Documents:**")
-        
         documents = get_documents()
         
         if documents:
@@ -595,6 +566,7 @@ def render_sidebar():
             stats = get_upload_stats()
             if stats:
                 col1, col2 = st.columns(2)
+                
                 with col1:
                     st.metric("Total", stats.get('total_uploads', 0))
                     st.metric("Processing", stats.get('processing', 0))
@@ -605,27 +577,12 @@ def render_sidebar():
 
 def render_chat_interface():
     """Render main chat interface"""
-    
     st.title("💬 Agentic RAG with Knowledge Base")
     
     if st.session_state.current_thread_id:
         st.info(f"🔖 Active Thread: `{st.session_state.current_thread_id}`")
     else:
         st.info("👋 Start a new conversation or select one from the sidebar!")
-    
-    # Debug logs
-    with st.expander("🐛 Debug Logs"):
-        if st.session_state.debug_logs:
-            col1, col2 = st.columns([4, 1])
-            with col2:
-                if st.button("🗑️ Clear"):
-                    st.session_state.debug_logs = []
-                    st.rerun()
-            
-            log_text = "\n".join(st.session_state.debug_logs[-50:])
-            st.code(log_text, language="log")
-        else:
-            st.info("No logs yet")
     
     st.divider()
     
@@ -657,7 +614,6 @@ def render_chat_interface():
             message_placeholder = st.empty()
             full_response = ""
             sources = []
-            
             current_tool_status = None
             current_tool_name = None
             
@@ -687,7 +643,6 @@ def render_chat_interface():
                     icon, label = tool_configs.get(tool_name, ("🔧", tool_name.replace("_", " ").title()))
                     
                     current_tool_status = st.status(f"{icon} {label}", expanded=True, state="running")
-                    
                     with current_tool_status:
                         st.write(f"Executing {tool_name}...")
                 
@@ -701,8 +656,8 @@ def render_chat_interface():
                             "google_web_search": "🌐",
                             "web_scrape": "📄"
                         }
-                        icon = tool_configs.get(tool_name, "🔧")
                         
+                        icon = tool_configs.get(tool_name, "🔧")
                         current_tool_status.update(
                             label=f"✅ {icon} {tool_name.replace('_', ' ').title()} - Complete",
                             state="complete",
@@ -719,7 +674,6 @@ def render_chat_interface():
                 
                 elif chunk_type == "error":
                     error_msg = chunk.get('message', 'Unknown error')
-                    
                     if current_tool_status:
                         current_tool_status.update(
                             label=f"❌ Error",
@@ -737,24 +691,22 @@ def render_chat_interface():
                 with st.expander("📚 Sources"):
                     for idx, source in enumerate(sources, 1):
                         st.markdown(f"**{idx}.** {source}")
-        
-        # Save to history
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": full_response,
-            "sources": sources
-        })
+            
+            # Save to history
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": full_response,
+                "sources": sources
+            })
         
         st.rerun()
 
 # ========================================
 # MAIN APP
 # ========================================
-
 def main():
     """Main application"""
-    
-    log_debug("🎬 App started")
+    logger.info("App started")
     
     if not st.session_state.token:
         render_login_page()
