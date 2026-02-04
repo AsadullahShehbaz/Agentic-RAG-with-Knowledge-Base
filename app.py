@@ -327,21 +327,21 @@ def get_upload_stats() -> Optional[Dict]:
 # ========================================
 def render_login_page():
     """Render login/register page"""
-    st.title("🤖 Agentic RAG Assistant")
-    st.subheader("Experience AI-powered conversations with advanced RAG technology")
-    
+    st.title("🤖 Agentic RAG with Knowledge Base")
+    st.subheader("Leverage cutting-edge AI for smarter conversations and document analysis")
+
     # Feature highlights
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
-        st.info("🧠 **Smart Memory**\n\nLong-term semantic memory for context-aware conversations")
-    
+        st.info("🧠 **Smart Context Retention**\n\nMaintains conversation history with intelligent memory recall")
+
     with col2:
-        st.info("📚 **Document RAG**\n\nUpload and chat with your PDF documents seamlessly")
-    
+        st.info("📚 **Enterprise RAG System**\n\nQuery your documents using state-of-the-art retrieval technology")
+
     with col3:
-        st.info("⚡ **Real-time AI**\n\nStreaming responses with multi-tool integration")
-    
+        st.info("⚡ **Multi-Tool Integration**\n\nSeamless access to web search, calculators, and AI agents")
+
     st.divider()
     
     # Login/Register Tabs
