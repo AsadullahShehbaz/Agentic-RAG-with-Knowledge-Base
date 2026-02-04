@@ -1,5 +1,4 @@
-# Enterprise AI Assistant with Custom Knowledge Base & Persistent Memory
-
+# Agentic RAG with Custom Knowledge Base
 A production-ready chatbot system with calculator tools, RAG-based document query, PostgreSQL thread-level memory, and JWT authentication.
 
 ## 🚀 Features
