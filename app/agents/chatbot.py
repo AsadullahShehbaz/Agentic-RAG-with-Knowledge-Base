@@ -104,6 +104,8 @@ class ChatbotAgent:
                 start_time = time.time()
                 logger.info("🔄 Starting graph astream...")
                 
+                # Track current tool name
+                current_tool_name = None  # ← NEW: Track tool name
                 def sync_stream():
                     for chunk in self.graph.stream(
                         {"messages":[HumanMessage(content=message)]},
@@ -144,6 +146,7 @@ class ChatbotAgent:
                     elif node == "tools":
                         if hasattr(msg,"name"):
                             tool_name = msg.name
+                            current_tool_name = tool_name
                             yield {
                                 "type":"tool_start",
                                 "tool": tool_name,
@@ -155,10 +158,10 @@ class ChatbotAgent:
                             logger.debug(f"   ✅ Tool result: {msg.content[:50]}...")
                             yield {
                                 "type": "tool_complete",
-                                "tool": getattr(msg,'name','unknown'),
+                                "tool": current_tool_name or getattr(msg,'name','unknown'),
                                 "message": "✅ Tool execution complete"  # Truncate long results
                             }
-                
+                            current_tool_name = None  # ← NEW: Reset tool name
                 # Reset flag for next stream
                 if hasattr(self, '_generation_started'):
                     delattr(self, '_generation_started')

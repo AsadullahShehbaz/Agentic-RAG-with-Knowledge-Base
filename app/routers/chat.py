@@ -204,10 +204,7 @@ async def chat(
             yield "data: [DONE]\n\n"
         
         # 6. Return streaming response
-        return StreamingResponse(
-            event_generator(),
-            media_type="text/event-stream"
-        )
+     
         # --------------------------
         # Update Thread Title (Optional)
         # --------------------------
@@ -223,16 +220,11 @@ async def chat(
         # Update thread timestamp
         thread.updated_at = datetime.utcnow()
         db.commit()
+        logger.info(f"📝 Updated thread timestamp: {thread.updated_at}")
 
-        logger.info(
-            f"✅ Chat response | user={current_user.id} | "
-            f"thread={thread_id} | response_length={len(result['response'])}"
-        )
-
-        return ChatResponse(
-            message=result["response"],
-            thread_id=thread_id,
-            sources=result.get("sources"),
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream"
         )
 
     except HTTPException:
