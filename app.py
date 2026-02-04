@@ -1,9 +1,10 @@
 """
-🤖 Persistent Chatbot - Clean Streamlit UI
-A beginner-friendly interface for AI chatbot with memory and RAG.
+🤖 Agentic RAG with Knowledge Base - Clean Streamlit UI
+A beginner-friendly interface for Agentic RAG with Knowledge Base .
 
 Features:
 ✅ User Authentication (Login/Register)
+✅ Long Term Memory (Semantic Memory)
 ✅ Thread Management (Create, Switch, Delete, Update Title)
 ✅ Document Upload & Management
 ✅ Real-time Streaming Chat
@@ -19,10 +20,10 @@ from datetime import datetime
 # ========================================
 # CONFIGURATION
 # ========================================
-API_BASE_URL = "http://localhost:8010"
+API_BASE_URL = "https://enterprise-ai-assistant-with-custom-knowledge-ba-production.up.railway.app/"
 
 st.set_page_config(
-    page_title="AI Chatbot",
+    page_title="Agentic RAG with Knowledge Base ",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -257,7 +258,7 @@ def get_upload_stats():
 def render_login_page():
     """Render login/register page"""
     
-    st.title("🤖 AI Chatbot with Memory")
+    st.title("🤖Agentic RAG with Knowledge Base ")
     st.subheader("Your intelligent assistant")
     
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
@@ -314,7 +315,7 @@ def render_sidebar():
     
     with st.sidebar:
         # User Info
-        st.header(f"👤 {st.session_state.username}")
+        st.header(f"👤 {st.session_state.username.upper()}")
         
         if st.button("🚪 Logout", use_container_width=True):
             logout()
@@ -466,7 +467,7 @@ def render_chat_interface():
     """Render main chat interface"""
     
     # Header
-    st.title("💬 AI Assistant")
+    st.title("💬Agentic RAG with Knowledge Base ")
     st.caption("Powered by LangGraph & RAG")
     
     # Thread info
